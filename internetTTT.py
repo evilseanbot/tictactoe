@@ -205,6 +205,6 @@ class AI:
 
 if __name__ == '__main__':
     game=GAME()     
-    player1 = AI("X")
+    player1 = Human("X")
     player2 = AI("O")
     game.play( player1, player2)
