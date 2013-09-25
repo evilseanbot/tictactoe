@@ -1,0 +1,104 @@
+<html ng-app='ticTacToe'>
+<style>
+    .spot {
+	    border: 1px solid black;
+		width: 100px;
+		height: 100px;
+		float: left;
+		font-size: 40px;
+	}
+</style>
+<script src='angular.js'></script>
+<script>
+angular.module('ticTacToe', []);
+
+function Ctrl($scope, $http) {		
+    $scope.spots = [];
+	for (var y = 0; y < 3; y++) {
+	    for (var x = 0; x < 3; x++) {
+		    $scope.spots[$scope.spots.length] = {row: x, col: y, state: ""};
+		}
+	}
+	
+	$scope.fillIn = function(spot) {
+	    if (spot.state == "") {
+            spot.state = 'X';
+			
+			if ($scope.won($scope.spots)) {
+			    alert("YOU WON!");
+			}			
+			
+			$scope.makeDecisionTree();
+		}
+	}
+	
+	$scope.won = function(spots) {
+	    for (x = 0; x < 3; x++) {
+		    var filledSpots = 0;
+		    for (var i = 0; i < $scope.spots.length; i++) {
+			    if ($scope.spots[i].row == x) {
+				    if ($scope.spots[i].state == "X") {
+    				    filledSpots++;
+					}
+				}
+			}
+			if (filledSpots == 3) {
+			    return true;
+			}
+		}
+
+	    for (y = 0; y < 3; y++) {
+		    var filledSpots = 0;
+		    for (var i = 0; i < $scope.spots.length; i++) {
+			    if ($scope.spots[i].col == y) {
+				    if ($scope.spots[i].state == "X") {
+    				    filledSpots++;
+					}
+				}
+			}
+			if (filledSpots == 3) {
+			    return true;
+			}
+		}				
+		
+		return false;
+	};
+	
+	$scope.makeDecisionTree = function() {
+	    $scope.decisionTree = {};
+		$scope.decisionTree.spots = clone($scope.spots);
+		$scope.findNextMoves($scope.decisionTree);
+		console.log($scope.decisionTree);
+	}
+	
+	$scope.findNextMoves = function(base) {
+		for (var i = 0; i < 9; i++) {
+		    if (base.spots[i].state == "") {
+		        base[i] =  {};	
+                base[i].spots = clone(base.spots);
+                base[i].spots[i].state = "X"; 				
+				$scope.findNextMoves(base[i]);
+			} 
+		}	    
+	}
+}
+
+function clone(obj){
+    if(obj == null || typeof(obj) != 'object')
+        return obj;
+
+    var temp = obj.constructor(); // changed
+
+    for(var key in obj)
+        temp[key] = clone(obj[key]);
+    return temp;
+}
+
+</script>
+<body ng-controller='Ctrl'>
+    <h1>Tic Tac Toe!</h1>
+	<div style='width: 330px; height: 330px; border: 1px solid black'>
+    	<div class='spot' ng-repeat='spot in spots' ng-click='fillIn(spot)'>{{spot.state}}</div> 
+	</div>
+</body>
+</html>
