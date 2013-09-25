@@ -5,7 +5,7 @@
 		width: 100px;
 		height: 100px;
 		float: left;
-		font-size: 40px;
+		font-size: 80px;
 	}
 </style>
 <script src='angular.js'></script>
@@ -14,73 +14,101 @@ angular.module('ticTacToe', []);
 
 function Ctrl($scope, $http) {		
     $scope.spots = [];
+	$scope.gameOver = false;
 	for (var y = 0; y < 3; y++) {
 	    for (var x = 0; x < 3; x++) {
-		    $scope.spots[$scope.spots.length] = {row: x, col: y, state: ""};
+		    $scope.spots[$scope.spots.length] = {row: x, col: y, state: "", id: x+(y*3)};
 		}
 	}
 	
 	$scope.fillIn = function(spot) {
-	    if (spot.state == "") {
-            spot.state = 'X';
-			
-			if ($scope.won($scope.spots)) {
-			    alert("YOU WON!");
-			}			
-			
-			$scope.makeDecisionTree();
+	    if (!$scope.gameOver) {
+			if (spot.state == "") {
+				spot.state = 'X';
+										
+				if ($scope.won($scope.spots)) {
+					$scope.messageText = "You won";
+					$scope.messageVisibile= true;
+					$scope.gameOver = true;
+				} else {						
+					$scope.spots[$scope.solution[spot.id].response].state = 'O';
+					$scope.solution = $scope.solution[spot.id];
+					if ($scope.won($scope.spots)) {
+					    console.log("Computer won");
+						$scope.messageText = "Computer won";
+						$scope.messageVisibile = true;						
+						$scope.gameOver = true;
+					}
+				}
+			}
 		}
 	}
 	
 	$scope.won = function(spots) {
-	    for (x = 0; x < 3; x++) {
-		    var filledSpots = 0;
-		    for (var i = 0; i < $scope.spots.length; i++) {
-			    if ($scope.spots[i].row == x) {
-				    if ($scope.spots[i].state == "X") {
-    				    filledSpots++;
+	    var teams = ["O", "X"];
+	    for (var j = 0; j < 2; j++) {
+			for (var x = 0; x < 3; x++) {
+				var filledSpots = 0;
+				for (var i = 0; i < $scope.spots.length; i++) {
+					if ($scope.spots[i].row == x) {
+						if ($scope.spots[i].state == teams[j]) {
+							filledSpots++;
+						}
 					}
 				}
+				if (filledSpots == 3) {
+					return true;
+				}
 			}
-			if (filledSpots == 3) {
-			    return true;
-			}
-		}
 
-	    for (y = 0; y < 3; y++) {
-		    var filledSpots = 0;
-		    for (var i = 0; i < $scope.spots.length; i++) {
-			    if ($scope.spots[i].col == y) {
-				    if ($scope.spots[i].state == "X") {
-    				    filledSpots++;
+			for (y = 0; y < 3; y++) {
+				var filledSpots = 0;
+				for (var i = 0; i < $scope.spots.length; i++) {
+					if ($scope.spots[i].col == y) {
+						if ($scope.spots[i].state == teams[j]) {
+							filledSpots++;
+						}
+					}
+				}
+				if (filledSpots == 3) {
+					return true;
+				}
+			}
+			var filledSpots = 0;
+			for (var i = 0; i < $scope.spots.length; i++) {
+				if ($scope.spots[i].col == $scope.spots[i].row) {
+					if ($scope.spots[i].state == teams[j]) {
+						filledSpots++;
 					}
 				}
 			}
 			if (filledSpots == 3) {
-			    return true;
+				return true;
 			}
-		}				
-		
-		return false;
-	};
+			var filledSpots = 0;
+			for (var i = 0; i < $scope.spots.length; i++) {
+				if ($scope.spots[i].col == 2 - $scope.spots[i].row) {
+					if ($scope.spots[i].state == teams[j]) {
+						filledSpots++;
+					}
+				}
+			}
+			if (filledSpots == 3) {
+				return true;
+			}			
+			
+		}
+		return false;		
+	};	
 	
-	$scope.makeDecisionTree = function() {
-	    $scope.decisionTree = {};
-		$scope.decisionTree.spots = clone($scope.spots);
-		$scope.findNextMoves($scope.decisionTree);
-		console.log($scope.decisionTree);
+	$scope.getSolution = function() {
+	    $http.get('TTTOSolution.json').success( function(data) {
+		    $scope.solution = data;
+		    return data
+		});
 	}
 	
-	$scope.findNextMoves = function(base) {
-		for (var i = 0; i < 9; i++) {
-		    if (base.spots[i].state == "") {
-		        base[i] =  {};	
-                base[i].spots = clone(base.spots);
-                base[i].spots[i].state = "X"; 				
-				$scope.findNextMoves(base[i]);
-			} 
-		}	    
-	}
+	$scope.getSolution();
 }
 
 function clone(obj){
@@ -97,8 +125,11 @@ function clone(obj){
 </script>
 <body ng-controller='Ctrl'>
     <h1>Tic Tac Toe!</h1>
-	<div style='width: 330px; height: 330px; border: 1px solid black'>
+	<div style='width: 330px; height: 330px; margin: auto;'>
     	<div class='spot' ng-repeat='spot in spots' ng-click='fillIn(spot)'>{{spot.state}}</div> 
-	</div>
+		<div id='message' style='margin: auto; height: 200px; width: 200px; border: 1px solid black; background-color: white; transition: background-color 2s; clear: both' ng-if='messageVisibile'>{{messageText}}</div>
+    </div>
+	
+	
 </body>
 </html>

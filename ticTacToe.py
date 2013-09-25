@@ -158,6 +158,10 @@ solution = getSolution(spots)
 JsonSolution = json.dumps(solution, default=lambda o: o.__dict__, sort_keys=True, indent=4, separators=(',', ': ') )
 print JsonSolution
 
+fo = open("TTTOSolution.json", "wb")
+fo.write(JsonSolution);
+fo.close()
+
 # print(MyBestMove(spots))
 # print "Theory Count for solution: " + str(theoryCount)
 # print "Time for solution: " + str(time.time() - before)
