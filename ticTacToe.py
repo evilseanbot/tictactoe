@@ -7,58 +7,31 @@ before = time.time()
 after = 0
 pruning = False
 
-def MyBestMove(spots):
-    global theoryCount, before
+def makeBestMove(spots, forEnemy):
+    global theoryCount
     bestMove = {}
     bestMove["outcome"] = None
     bestMove["pos"] = None
 
     for i in range(9):
         if spots[i]["state"] == "":
-            spots[i]["state"] = "O"
+            if forEnemy:
+                spots[i]["state"] = "X"
+            else:
+                spots[i]["state"] = "O"
 
             theoryCount += 1
 
             if getGameOverState(spots)["gameOver"]:
                 thisOutcome = getGameOverState(spots)["outcome"]
             else:
-                # enemyMove = EnemyBestMove(spots)
-                # thisPos = enemyMove["pos"]
-                thisOutcome = EnemyBestMove(spots)["outcome"]
+                thisOutcome = makeBestMove(spots, not forEnemy)["outcome"]
 
             spots[i]["state"] = ""
 
-            if bestMove["outcome"] == None or thisOutcome > bestMove["outcome"]:
+            if bestMove["outcome"] == None or (not forEnemy and thisOutcome > bestMove["outcome"]) or (forEnemy and thisOutcome < bestMove["outcome"]):
                 bestMove["outcome"] = thisOutcome
                 bestMove["pos"] = i
-
-    return bestMove
-
-def EnemyBestMove(spots):
-    global theoryCount, before
-    bestMove = {}
-    bestMove["outcome"] = None
-    bestMove["pos"] = None
-
-    for i in range(9):
-        
-        if spots[i]["state"] == "":
-            spots[i]["state"] = "X"
-
-            theoryCount += 1
-            
-            if getGameOverState(spots)["gameOver"]:
-                thisOutcome = getGameOverState(spots)["outcome"]
-            else:
-                # thisPos = MyBestMove(base[i])["pos"]
-                thisOutcome = MyBestMove(spots)["outcome"]
-
-            spots[i]["state"] = ""
-
-            if bestMove["outcome"] == None or thisOutcome < bestMove["outcome"]:
-                bestMove["outcome"] = thisOutcome
-                bestMove["pos"] = i
-
     return bestMove
 
 def getResultFromCross(team):
@@ -126,7 +99,7 @@ def printToes(spots):
 
 def getSolutionBranch(spots):
     branch = {}
-    branch["response"] = MyBestMove(spots)["pos"]
+    branch["response"] = makeBestMove(spots, False)["pos"]
     spots[branch["response"]]["state"] = "O"
     if not getGameOverState(spots)["gameOver"]:
         for i in range(9):
@@ -144,7 +117,6 @@ def getSolution(spots):
     for i in range(9):
         spots[i]["state"] = "X"
         solution[i] = {}
-        # solution[i]["response"] = MyBestMove(spots)["pos"]
         solution[i] = getSolutionBranch(spots)
         spots[i]["state"] = ""
     return solution
