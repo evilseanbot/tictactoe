@@ -2,45 +2,78 @@
 <style>
     .spot {
 	    border: 1px solid black;
-		width: 100px;
-		height: 100px;
+		width: 98px;
+		height: 98px;
 		float: left;
 		font-size: 80px;
+	}
+	
+	#messageBox {
+	    margin-left: auto; 
+		margin-right: auto;
+		width: 258px;
+		margin-top: 40px; 
+		border: 1px solid black; 
+		background-color: white; 
+		clear: both; 
+		font-size: 40px; 
+		padding: 20px
 	}
 </style>
 <script src='angular.js'></script>
 <script>
 angular.module('ticTacToe', []);
 
-function Ctrl($scope, $http) {		
-    $scope.spots = [];
-	$scope.gameOver = false;
-	for (var y = 0; y < 3; y++) {
-	    for (var x = 0; x < 3; x++) {
-		    $scope.spots[$scope.spots.length] = {row: x, col: y, state: "", id: x+(y*3)};
-		}
-	}
-	
+function Ctrl($scope, $http) {			
 	$scope.fillIn = function(spot) {
+	    if ($scope.team == 'X') {
+		    var computerTeam = "O";
+		} else {
+		    var computerTeam = "X";
+	    }
+		
 	    if (!$scope.gameOver) {
 			if (spot.state == "") {
-				spot.state = 'X';
+				spot.state = $scope.team;
 										
 				if ($scope.won($scope.spots)) {
-					$scope.messageText = "You won";
+					$scope.outcomeText = "You won";
 					$scope.messageVisibile= true;
 					$scope.gameOver = true;
-				} else {						
-					$scope.spots[$scope.solution[spot.id].response].state = 'O';
+				} else if ($scope.draw($scope.spots)) {
+                    $scope.outcomeText = "Draw!";
+					$scope.messageVisibile = true;
+					$scope.gameOver = true;
+                } else {						
+					$scope.spots[$scope.solution[spot.id].response].state = computerTeam;
 					$scope.solution = $scope.solution[spot.id];
 					if ($scope.won($scope.spots)) {
 					    console.log("Computer won");
-						$scope.messageText = "Computer won";
+						$scope.outcomeText = "Computer won";
 						$scope.messageVisibile = true;						
+						$scope.gameOver = true;
+					} else if ($scope.draw($scope.spots)) {
+						$scope.outcomeText = "Draw!";
+						$scope.messageVisibile = true;
 						$scope.gameOver = true;
 					}
 				}
 			}
+		}
+	}
+	
+	$scope.draw = function(spots) {
+	    var filledSpots = 0;
+	    for (i = 0; i < spots.length; i++) {
+		    if (spots[i]["state"] != '') {
+			    filledSpots++;
+			}
+		}
+		
+		if (filledSpots == 9) {
+		    return true;
+		} else {
+		    return false;
 		}
 	}
 	
@@ -101,15 +134,38 @@ function Ctrl($scope, $http) {
 		return false;		
 	};	
 	
-	$scope.getSolution = function() {
-	    $http.get('TTTOSolution.json').success( function(data) {
-		    $scope.solution = data;
-		    return data
+	$scope.startGame = function() {
+	    if ($scope.team == 'X') {
+		    solutionFile = 'TTTOSolution.json';
+		} else {
+		    solutionFile = 'TTTXSolution.json';
+		}
+	
+	    $http.get(solutionFile).success( function(solutionData) {
+		    $scope.solution = solutionData;
+			if ($scope.team == "O") {
+			    console.log($scope.solution);
+				$scope.spots[$scope.solution["response"]].state = "X";
+			}
+			$scope.gameOver = false;
 		});
+		
+		$scope.messageVisibile = false;
+
+        $scope.spots = [];		
+		for (var y = 0; y < 3; y++) {
+			for (var x = 0; x < 3; x++) {
+				$scope.spots[$scope.spots.length] = {row: x, col: y, state: "", id: x+(y*3)};
+			}
+	    }
 	}
 	
-	$scope.getSolution();
+	$scope.team = "X";
+	
+	$scope.startGame();
 }
+
+// Function taken from Stack Overflow
 
 function clone(obj){
     if(obj == null || typeof(obj) != 'object')
@@ -124,12 +180,18 @@ function clone(obj){
 
 </script>
 <body ng-controller='Ctrl'>
-    <h1>Tic Tac Toe!</h1>
-	<div style='width: 330px; height: 330px; margin: auto;'>
+    <h1 style='text-align: center'>Tic Tac Toe!</h1>
+	<div style='margin: auto; width: 300px; margin-bottom: 20px'>
+	    <input type='radio' ng-model='team' ng-change='startGame()' value='X' />Play first (X)<span style='margin-right: 50px'> </span>
+		<input type='radio' ng-model='team' ng-change='startGame()' value='O' />Play second (O)
+	</div>
+	<div style='width: 300px; height: 300px; margin: auto; margin-bottom: 40px;'>
     	<div class='spot' ng-repeat='spot in spots' ng-click='fillIn(spot)'>{{spot.state}}</div> 
-		<div id='message' style='margin: auto; height: 200px; width: 200px; border: 1px solid black; background-color: white; transition: background-color 2s; clear: both' ng-if='messageVisibile'>{{messageText}}</div>
     </div>
-	
-	
+
+	<div id='messageBox'  ng-if='messageVisibile'>
+		<div style='text-align: center' id='outcomeText'>{{outcomeText}}</div>
+		<div ng-click='startGame()' style='text-decoration: underline; color: white; background-color: blue; text-align: center'>Play again</div>
+	</div>	
 </body>
 </html>

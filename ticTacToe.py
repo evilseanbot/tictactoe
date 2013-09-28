@@ -4,30 +4,29 @@ import json
 
 theoryCount = 0
 before = time.time()
-after = 0
-pruning = False
 
-def makeBestMove(spots, forEnemy):
+def makeBestMove(spots, lines, forEnemy):
     global theoryCount
     bestMove = {}
     bestMove["outcome"] = None
     bestMove["pos"] = None
 
     for i in range(9):
-        if spots[i]["state"] == "":
+        if spots[i] == "":
+            
             if forEnemy:
-                spots[i]["state"] = "X"
+                spots[i] = "X"
             else:
-                spots[i]["state"] = "O"
+                spots[i] = "O"
 
             theoryCount += 1
 
-            if getGameOverState(spots)["gameOver"]:
-                thisOutcome = getGameOverState(spots)["outcome"]
+            if getGameOverState(spots, lines)["gameOver"]:
+                thisOutcome = getGameOverState(spots, lines)["outcome"]
             else:
-                thisOutcome = makeBestMove(spots, not forEnemy)["outcome"]
+                thisOutcome = makeBestMove(spots, lines, not forEnemy)["outcome"]
 
-            spots[i]["state"] = ""
+            spots[i] = ""
 
             if bestMove["outcome"] == None or (not forEnemy and thisOutcome > bestMove["outcome"]) or (forEnemy and thisOutcome < bestMove["outcome"]):
                 bestMove["outcome"] = thisOutcome
@@ -36,102 +35,108 @@ def makeBestMove(spots, forEnemy):
 
 def getResultFromCross(team):
     if team == "X":
-        return {"gameOver": True, "draw": False, "outcome": -1}
+        return {"gameOver": True, "outcome": -1}
     else:
-        return {"gameOver": True, "draw": False, "outcome": 1}    
+        return {"gameOver": True, "outcome": 1}    
 
-def getGameOverState(spots):
+def getLines():
+    lines = []
+    # Horizontal lines
+    for rowOffset in range(3):
+        lines.append(range((rowOffset*3), (rowOffset*3)+3, 1))
+
+    # Vertical lines
+    for colOffset in range(3):
+        lines.append(range(colOffset, colOffset+7, 3))
+
+    # Diagnol lines
+    lines.append(range(0, 9, 4))
+    lines.append(range(2, 7, 2))
+
+    return lines
+
+def getGameOverState(spots, lines):
+    # First checks to see if someone has won:
     for team in ["X", "O"]:
-        for x in range(3):
+        for line in getLines():
             filledSpots = 0
-            for spot in spots:
-                if spot["col"] == x:
-                    if spot["state"] == team:
-                        filledSpots += 1
+            for pos in line:
+                if spots[pos] == team:
+                    filledSpots += 1
             if filledSpots == 3:
                 return getResultFromCross(team)
-        for y in range(3):
-            filledSpots = 0
-            for spot in spots:
-                if spot["row"] == y:
-                    if spot["state"] == team:
-                        filledSpots += 1
-            if filledSpots == 3:
-                return getResultFromCross(team)
-
-        filledSpots = 0
-        for spot in spots:
-            if spot["row"] == spot["col"]:
-                if spot["state"] == team:
-                    filledSpots += 1
-        if filledSpots == 3:
-            return getResultFromCross(team)
-
-        filledSpots = 0
-        for spot in spots:
-            if spot["row"] == 2 - spot["col"]:
-                if spot["state"] == team:
-                    filledSpots += 1
-        if filledSpots == 3:
-            return getResultFromCross(team)
-
+            
+    # If no one has won, checks to see if the board is filled, and thus the game is over.
     noBlankSpotsLeft = True
     for i in range(9):
-        if spots[i]["state"] == "":
+        if spots[i] == "":
            noBlankSpotsLeft = False
     if noBlankSpotsLeft:
-        return {"gameOver": True, "draw": True, "outcome": 0}
+        return {"gameOver": True, "outcome": 0}
     else:
-        return {"gameOver": False, "draw": False, "outcome": "TEST!"}
+        return {"gameOver": False, "outcome": None}
 
 
 def printToes(spots):
     for y in range(3):
         for x in range(3):
-            if spots[x + (y*3)]["state"] == "X":
+            if spots[x + (y*3)] == "X":
                 print "X",
-            elif spots[x + (y*3)]["state"] == "O":
+            elif spots[x + (y*3)] == "O":
                 print "O",
             else:
                 print "_",
         print ""
     print "="
 
-def getSolutionBranch(spots):
+def getSolutionBranch(spots, lines):
     branch = {}
-    branch["response"] = makeBestMove(spots, False)["pos"]
-    spots[branch["response"]]["state"] = "O"
-    if not getGameOverState(spots)["gameOver"]:
+    branch["response"] = makeBestMove(spots, lines, False)["pos"]
+    spots[branch["response"]] = "O"
+    if not getGameOverState(spots, lines)["gameOver"]:
         for i in range(9):
-            if spots[i]["state"] == "":
-                spots[i]["state"] = "X"
-                if not getGameOverState(spots)["gameOver"]:
-                    branch[i] = getSolutionBranch(spots)
-                spots[i]["state"] = ""
-    spots[branch["response"]]["state"] = ""
+            if spots[i] == "":
+                spots[i] = "X"
+                if not getGameOverState(spots, lines)["gameOver"]:
+                    branch[i] = getSolutionBranch(spots, lines)
+                spots[i] = ""
+    spots[branch["response"]] = ""
     return branch
             
 
-def getSolution(spots):
+def getSolutionForO(spots, lines):
     solution = {}
     for i in range(9):
-        spots[i]["state"] = "X"
+        spots[i] = "X"
         solution[i] = {}
-        solution[i] = getSolutionBranch(spots)
-        spots[i]["state"] = ""
+        solution[i] = getSolutionBranch(spots, lines)
+        spots[i] = ""
     return solution
 
-spots = []
-for x in range(3):
-    for y in range(3):
-        spots.append({"row": x, "col": y, "state": ''})
+def getSolutionForX(spots, lines):
+    solution = {}
+    solution = getSolutionBranch(spots, lines)
+    return solution
 
-solution = getSolution(spots)
-JsonSolution = json.dumps(solution, default=lambda o: o.__dict__, sort_keys=True, indent=4, separators=(',', ': ') )
-print JsonSolution
+def prettyJson(string):
+    return json.dumps(string, default=lambda o: o.__dict__, sort_keys=True, indent=4, separators=(',', ': '))
+
+
+lines = getLines()
+spots = []
+for i in range(9):
+    spots.append('')
+
+OSolution = prettyJson(getSolutionForO(spots, lines))
 
 fo = open("TTTOSolution.json", "wb")
-fo.write(JsonSolution);
+fo.write(OSolution);
+fo.close()
+
+XSolution = prettyJson(getSolutionForX(spots, lines))
+
+fo = open("TTTXSolution.json", "wb")
+fo.write(XSolution);
 fo.close()
 
 # print(MyBestMove(spots))
