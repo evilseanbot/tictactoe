@@ -154,6 +154,7 @@ function Ctrl($scope, $http) {
 	
 	$scope.team = "X";
 	$scope.startGame();
+	$scope.gameOver = true;
 }
 
 // Function taken from Stack Overflow user ConroyP
